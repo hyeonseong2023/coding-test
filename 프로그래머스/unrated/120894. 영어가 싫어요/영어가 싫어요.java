@@ -36,7 +36,6 @@ class Solution {
                 numbers = numbers.substring(4);
             }
         }
-        
         return Long.parseLong(ansTemp);
     }
 }
