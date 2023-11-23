@@ -8,7 +8,7 @@ class Solution {
         String[] ans = s.split("");
 
         List<String> list = new ArrayList<>();
-
+ 
         for (String i : ans) {
             if (!list.contains(i)) {
                 list.add(i);
