@@ -20,8 +20,6 @@ class Solution {
             }
         }
         
-        if(answer.length() == 0) answer = "EMPTY";
-        
-        return answer;
+        return answer.length() == 0 ? "EMPTY" : answer ;
     }
 }
