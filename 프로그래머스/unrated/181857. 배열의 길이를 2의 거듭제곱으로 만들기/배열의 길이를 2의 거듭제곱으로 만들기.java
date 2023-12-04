@@ -4,11 +4,11 @@ class Solution {
     public int[] solution(int[] arr) {
         
         ArrayList<Integer> ans = new ArrayList<>();
-        int temp = 2;
+        int temp = 1;
         
         for(int i = 0; i < arr.length; i++) ans.add(arr[i]);
         
-        if(arr.length == 1) return arr;
+        // if(arr.length == 1) return arr;
         
         while(true){
             if(temp > ans.size()){
