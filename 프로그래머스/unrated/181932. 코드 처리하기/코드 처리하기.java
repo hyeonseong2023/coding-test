@@ -1,5 +1,6 @@
 class Solution {
     public String solution(String code) {
+        
         String answer = "";
         String mode = "0";
         String[] codeArr = code.split("");
