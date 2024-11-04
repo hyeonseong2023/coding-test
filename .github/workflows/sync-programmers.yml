@@ -1,0 +1,72 @@
+name: Sync Programmers Solutions
+
+on:
+  push:
+    paths:
+      - '프로그래머스/**'  # 프로그래머스 폴더 내 변경사항이 있을 때만 실행
+    branches: [ main ]    # main 브랜치에 push가 있을 때
+  workflow_dispatch:      # 수동 실행 가능
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository (coding-test)
+        uses: actions/checkout@v4
+        with:
+          path: coding-test
+          ref: main
+
+      - name: Checkout target repository (AlgorithmStudy)
+        uses: actions/checkout@v4
+        with:
+          repository: Gwangju-Web-Study/AlgorithmStudy
+          path: algorithm-study
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: main
+
+      - name: Sync changes
+        run: |
+          # 현재 시간 (한국 시간)
+          TIMESTAMP=$(TZ='Asia/Seoul' date +'%Y-%m-%d %H:%M:%S KST')
+          
+          # 프로그래머스 폴더의 변경된 파일 확인
+          cd coding-test
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^프로그래머스/')
+          
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "변경된 파일들:"
+            echo "$CHANGED_FILES"
+            
+            # 각 변경된 파일에 대해 처리
+            while IFS= read -r file; do
+              # 파일이 실제로 존재하는 경우에만 처리
+              if [ -f "$file" ]; then
+                # 대상 경로 생성
+                TARGET_PATH="../algorithm-study/현성/$(basename "$(dirname "$file")")"
+                mkdir -p "$TARGET_PATH"
+                
+                # 파일 복사
+                cp "$file" "$TARGET_PATH/"
+                echo "복사됨: $file -> $TARGET_PATH/"
+              fi
+            done <<< "$CHANGED_FILES"
+            
+            # 변경사항 커밋 및 푸시
+            cd ../algorithm-study
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            
+            git add .
+            git commit -m "✨ 프로그래머스 문제 동기화" -m "🕐 동기화 시간: $TIMESTAMP"
+            git push
+            
+            echo "✅ 동기화가 완료되었습니다."
+          else
+            echo "⏭️ 프로그래머스 폴더에 변경사항이 없습니다."
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf coding-test algorithm-study
