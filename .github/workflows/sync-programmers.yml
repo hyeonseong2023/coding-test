@@ -16,7 +16,7 @@ jobs:
         with:
           path: coding-test
           ref: main
-          fetch-depth: 2
+          fetch-depth: 0  # 전체 히스토리 가져오기
 
       - name: Checkout target repository (AlgorithmStudy)
         uses: actions/checkout@v4
@@ -28,73 +28,50 @@ jobs:
 
       - name: Sync changes
         run: |
-          # 디버깅: 현재 디렉토리 확인
-          pwd
-          ls -la
-          
-          # 프로그래머스 폴더의 변경된 파일 확인
           cd coding-test
-          echo "=== Source Repository ==="
-          ls -la
           
-          # 마지막 커밋 메시지 가져오기
+          # 가장 최근 커밋 메시지 확인
           COMMIT_MSG=$(git log -1 --pretty=format:%s)
           echo "Commit message: $COMMIT_MSG"
           
-          # Title과 level 추출
-          if [[ $COMMIT_MSG =~ \[level\ ([0-9]+)\]\ Title:\ ([^,]+) ]]; then
-            LEVEL=${BASH_REMATCH[1]}
-            TITLE=${BASH_REMATCH[2]}
-            NEW_COMMIT_MSG="[PGS] ${TITLE} / lv${LEVEL}"
-            echo "Extracted - Level: $LEVEL, Title: $TITLE"
-            echo "New commit message: $NEW_COMMIT_MSG"
-          else
-            NEW_COMMIT_MSG="[PGS] 문제 동기화"
-            echo "Failed to extract level and title, using default message"
-          fi
+          # 프로그래머스 폴더 내 모든 파일 찾기
+          PROG_FILES=$(find 프로그래머스 -type f)
+          echo "Found files: $PROG_FILES"
           
-          # 변경된 파일 확인
-          echo "=== Changed Files ==="
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^프로그래머스/' || true)
-          echo "$CHANGED_FILES"
-          
-          if [ -n "$CHANGED_FILES" ]; then
+          if [ -n "$PROG_FILES" ]; then
+            if [[ $COMMIT_MSG =~ \[level\ ([0-9]+)\]\ Title:\ ([^,]+) ]]; then
+              LEVEL=${BASH_REMATCH[1]}
+              TITLE=${BASH_REMATCH[2]}
+              NEW_COMMIT_MSG="[PGS] ${TITLE} / lv${LEVEL}"
+              echo "Extracted - Level: $LEVEL, Title: $TITLE"
+            else
+              NEW_COMMIT_MSG="[PGS] 문제 동기화"
+            fi
+            
             while IFS= read -r file; do
               if [ -f "$file" ]; then
                 echo "Processing file: $file"
-                
                 PROBLEM_DIR=$(basename "$(dirname "$file")")
-                echo "Problem directory: $PROBLEM_DIR"
-                
                 TITLE_ONLY=$(echo "$PROBLEM_DIR" | sed -E 's/^[0-9]+\.\s*//')
-                echo "Title only: $TITLE_ONLY"
-                
                 TARGET_PATH="../algorithm-study/현성/${TITLE_ONLY}"
-                echo "Target path: $TARGET_PATH"
                 
                 mkdir -p "$TARGET_PATH"
                 cp "$file" "$TARGET_PATH/"
-                echo "File copied to: $TARGET_PATH/$(basename "$file")"
-              else
-                echo "File not found: $file"
+                echo "File copied: $TARGET_PATH/$(basename "$file")"
               fi
-            done <<< "$CHANGED_FILES"
+            done <<< "$PROG_FILES"
             
             cd ../algorithm-study
-            echo "=== Target Repository ==="
-            ls -la
-            
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             
             git add .
-            git status
             git commit -m "$NEW_COMMIT_MSG" -m "🕐 동기화 시간: $(TZ='Asia/Seoul' date +'%Y-%m-%d %H:%M:%S KST')"
             git push
             
             echo "✅ 동기화가 완료되었습니다."
           else
-            echo "⏭️ 프로그래머스 폴더에 변경사항이 없습니다."
+            echo "⏭️ 프로그래머스 폴더가 비어있습니다."
           fi
 
       - name: Cleanup
