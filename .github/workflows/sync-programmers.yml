@@ -16,7 +16,7 @@ jobs:
         with:
           path: coding-test
           ref: main
-          fetch-depth: 2  # 이전 커밋도 가져오기 위해 설정
+          fetch-depth: 2
 
       - name: Checkout target repository (AlgorithmStudy)
         uses: actions/checkout@v4
@@ -56,8 +56,15 @@ jobs:
             
             while IFS= read -r file; do
               if [ -f "$file" ]; then
-                TARGET_PATH="../algorithm-study/현성/$(basename "$(dirname "$file")")"
+                # 원본 폴더 이름에서 문제 번호를 제외한 제목만 추출
+                PROBLEM_DIR=$(basename "$(dirname "$file")")
+                TITLE_ONLY=$(echo "$PROBLEM_DIR" | sed -E 's/^[0-9]+\.\s*//')
+                
+                # 새로운 대상 경로 (현성/문제제목)
+                TARGET_PATH="../algorithm-study/현성/${TITLE_ONLY}"
                 mkdir -p "$TARGET_PATH"
+                
+                # 파일 복사
                 cp "$file" "$TARGET_PATH/"
                 echo "복사됨: $file -> $TARGET_PATH/"
               fi
