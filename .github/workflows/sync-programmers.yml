@@ -3,9 +3,9 @@ name: Sync Programmers Solutions
 on:
   push:
     paths:
-      - '프로그래머스/**'  # 프로그래머스 폴더 내 변경사항이 있을 때만 실행
-    branches: [ main ]    # main 브랜치에 push가 있을 때
-  workflow_dispatch:      # 수동 실행 가능
+      - '프로그래머스/**'
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -16,6 +16,7 @@ jobs:
         with:
           path: coding-test
           ref: main
+          fetch-depth: 2  # 이전 커밋도 가져오기 위해 설정
 
       - name: Checkout target repository (AlgorithmStudy)
         uses: actions/checkout@v4
@@ -32,33 +33,42 @@ jobs:
           
           # 프로그래머스 폴더의 변경된 파일 확인
           cd coding-test
+          
+          # 마지막 커밋 메시지 가져오기
+          COMMIT_MSG=$(git log -1 --pretty=format:%s)
+          
+          # Title과 level 추출
+          if [[ $COMMIT_MSG =~ \[level\ ([0-9]+)\]\ Title:\ ([^,]+) ]]; then
+            LEVEL=${BASH_REMATCH[1]}
+            TITLE=${BASH_REMATCH[2]}
+            # 새로운 커밋 메시지 형식으로 변경
+            NEW_COMMIT_MSG="[PGS] ${TITLE} / lv${LEVEL}"
+          else
+            # 매칭되지 않을 경우 기본 메시지 사용
+            NEW_COMMIT_MSG="[PGS] 문제 동기화"
+          fi
+          
           CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep '^프로그래머스/')
           
           if [ -n "$CHANGED_FILES" ]; then
             echo "변경된 파일들:"
             echo "$CHANGED_FILES"
             
-            # 각 변경된 파일에 대해 처리
             while IFS= read -r file; do
-              # 파일이 실제로 존재하는 경우에만 처리
               if [ -f "$file" ]; then
-                # 대상 경로 생성
                 TARGET_PATH="../algorithm-study/현성/$(basename "$(dirname "$file")")"
                 mkdir -p "$TARGET_PATH"
-                
-                # 파일 복사
                 cp "$file" "$TARGET_PATH/"
                 echo "복사됨: $file -> $TARGET_PATH/"
               fi
             done <<< "$CHANGED_FILES"
             
-            # 변경사항 커밋 및 푸시
             cd ../algorithm-study
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             
             git add .
-            git commit -m "✨ 프로그래머스 문제 동기화" -m "🕐 동기화 시간: $TIMESTAMP"
+            git commit -m "$NEW_COMMIT_MSG" -m "🕐 동기화 시간: $TIMESTAMP"
             git push
             
             echo "✅ 동기화가 완료되었습니다."
