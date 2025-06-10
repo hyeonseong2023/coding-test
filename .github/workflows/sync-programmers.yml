@@ -11,6 +11,34 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Test PAT Token
+        run: |
+          echo "🔍 Testing PAT token access..."
+          
+          # 토큰 기본 정보 확인
+          echo "Testing token authentication:"
+          curl -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/user
+          
+          echo -e "\n---\n"
+          
+          # 대상 저장소 접근 권한 확인
+          echo "Testing target repository access:"
+          curl -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/repos/Gwangju-Web-Study/AlgorithmStudy
+          
+          echo -e "\n---\n"
+          
+          # 저장소 권한 레벨 확인
+          echo "Testing repository permissions:"
+          curl -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/repos/Gwangju-Web-Study/AlgorithmStudy/collaborators/$(curl -H "Authorization: token ${{ secrets.PAT_TOKEN }}" https://api.github.com/user | jq -r .login)/permission
+          
+          echo -e "\n✅ Token test completed"
+          
       - name: Checkout source repository (coding-test)
         uses: actions/checkout@v4
         with:
